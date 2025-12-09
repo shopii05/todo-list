@@ -10,7 +10,7 @@ export default function App() {
   // ================================
   const cargarTareas = async () => {
     try {
-      const res = await fetch("http://localhost:3001/tareas");
+      const res = await fetch("https://todo-list-backend.onrender.com/tareas");
       const data = await res.json();
       setTareas(data);
     } catch (error) {
