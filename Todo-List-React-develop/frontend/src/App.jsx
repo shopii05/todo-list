@@ -42,7 +42,15 @@ export default function App() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Añadir Tarea"
+
+          // 👇 ESTE ES EL CÓDIGO QUE AÑADE TAREAS AL PRESIONAR ENTER
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              agregarTarea();
+            }
+          }}
         />
+
         <button
           className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded"
           onClick={agregarTarea}
