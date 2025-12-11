@@ -1,34 +1,98 @@
 import TodoItem from "./TodoItem"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 export default function App() {
 
   const [tareas, setTareas] = useState([]);
   const [input, setInput] = useState("");
 
+  // URL de la API
+  const envApi = import.meta.env.VITE_API_URL;
+  const defaultLocal = "http://localhost:3001";
+  const PROD_BACKEND = "https://todo-list-backend-8eq5.onrender.com";
+  let inferredApi = envApi || defaultLocal;
+  if (!envApi && typeof window !== "undefined" && window.location && window.location.hostname !== "localhost") {
+    inferredApi = PROD_BACKEND;
+  }
+  const API = inferredApi;
+
+  // Cargar tareas desde el backend al iniciar
+  useEffect(() => {
+    const fetchTareas = async () => {
+      try {
+        const res = await fetch(`${API}/tareas`);
+        if (!res.ok) throw new Error("Error al obtener tareas");
+        const data = await res.json();
+        setTareas(data.map(t => ({ id: t.id, text: t.descripcion, completed: t.completado })));
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchTareas();
+  }, [API]);
+
   // Agregar tarea
   const agregarTarea = () => {
     if (input.trim()) {
-      setTareas([
-        ...tareas,
-        { id: Date.now(), text: input.trim(), completed: false }
-      ]);
-      setInput("");
+      (async () => {
+        try {
+          const res = await fetch(`${API}/tareas`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ descripcion: input.trim() })
+          });
+          if (!res.ok) throw new Error("Error al crear tarea");
+          const nueva = await res.json();
+          setTareas([
+            ...tareas,
+            { id: nueva.id, text: nueva.descripcion, completed: nueva.completado }
+          ]);
+          setInput("");
+        } catch (err) {
+          console.error(err);
+        }
+      })();
     }
   }
 
-  // Tachar tarea
+  // Tachar tarea (actualizar en backend)
   const toggleCompleted = (id) => {
-    setTareas(
-      tareas.map((tarea) =>
-        tarea.id === id ? { ...tarea, completed: !tarea.completed } : tarea
-      )
-    );
+    const tarea = tareas.find(t => t.id === id);
+    if (!tarea) return;
+
+    (async () => {
+      try {
+        const res = await fetch(`${API}/tareas/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ completado: !tarea.completed })
+        });
+        if (!res.ok) throw new Error("Error al actualizar tarea");
+        setTareas(
+          tareas.map((t) =>
+            t.id === id ? { ...t, completed: !t.completed } : t
+          )
+        );
+      } catch (err) {
+        console.error(err);
+      }
+    })();
   };
 
-  // Eliminar tarea
+  // Eliminar tarea (DELETE al backend)
   const eliminarTarea = (id) => {
-    setTareas(tareas.filter((tarea) => tarea.id !== id));
+    (async () => {
+      try {
+        const res = await fetch(`${API}/tareas/${id}`, {
+          method: "DELETE"
+        });
+        if (!res.ok) throw new Error("Error al eliminar tarea");
+        setTareas(tareas.filter((tarea) => tarea.id !== id));
+      } catch (err) {
+        console.error(err);
+      }
+    })();
   }
 
   return (
